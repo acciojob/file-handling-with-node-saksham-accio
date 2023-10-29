@@ -1,16 +1,37 @@
 const fs = require('fs');
-const csv = require('csv-parser');
+const csvParser = require('csv-parser');
 
-const csvFilePath = process.argv[2];
-const columnName = process.argv[3];
+function sumCSVColumn(filePath, columnName, callback) {
+  if (!filePath || !columnName) {
+    callback('Usage: node app.js <path_to_csv_file> <column_name>', null);
+    return;
+  }
 
-let sum = 0;
+  let sum = 0;
+    
+  let stream = fs.createReadStream(filePath);
 
-fs.createReadStream(csvFilePath)
-  .pipe(csv())
-  .on('data', (data) => {
-    // TODO: Add code to sum values in the specified column
-  })
-  .on('end', () => {
-    console.log(`The sum of ${columnName} is: ${sum}`);
+  stream.on('error', function(err) {
+    console.log('i am here');
+      callback(`Error reading the CSV file: ${err}`, null);
+      return; // Ensure that the rest of the code doesn't execute
   });
+  
+  stream.pipe(csvParser())
+    .on('data', (row) => {
+        const value = parseFloat(row[columnName]);
+        if (!isNaN(value)) {
+          sum += value;
+        }
+    })
+    .on('end', () => {
+        if (sum == 0) {
+            callback('Invalid column name', null);
+            return;
+          }
+          callback(null, `The sum of ${columnName} is: ${sum}`);
+    });
+
+}
+
+module.exports = sumCSVColumn;
